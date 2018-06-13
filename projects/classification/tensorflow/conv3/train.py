@@ -5,7 +5,7 @@ import os
 import cv2
 
 txtfile = sys.argv[1]
-batch_size = 16
+batch_size = 64
 num_classes = 2
 image_size = (48,48)
 learning_rate = 0.0001
@@ -26,7 +26,9 @@ if __name__=="__main__":
     cross_entropy = tf.reduce_mean(cross_entropy)
     correct_prediction = tf.equal(tf.argmax(Y, 1), tf.argmax(batch_labels, 1))
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-    train_step = tf.train.AdamOptimizer(learning_rate).minimize(cross_entropy)
+    update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+    with tf.control_dependencies(update_ops):
+        train_step = tf.train.AdamOptimizer(learning_rate).minimize(cross_entropy)
 
     saver = tf.train.Saver()
     in_steps = 100
@@ -44,12 +46,12 @@ if __name__=="__main__":
     with tf.Session() as sess:  
         init = tf.global_variables_initializer()
         sess.run(init)  
-        steps = 50000  
+        steps = 10000  
         for i in range(steps): 
             _,cross_entropy_,accuracy_,batch_images_,batch_labels_,loss_summary_,acc_summary_,image_summary_ = sess.run([train_step,cross_entropy,accuracy,batch_images,batch_labels,loss_summary,acc_summary,image_summary])
             if i % in_steps == 0 :
                 print i,"iterations,loss=",cross_entropy_,"acc=",accuracy_
-                saver.save(sess, checkpoint_dir + 'model.ckpt', global_step=i+1)    
+                saver.save(sess, checkpoint_dir + 'model.ckpt', global_step=i)    
                 summary.add_summary(loss_summary_, i)
                 summary.add_summary(acc_summary_, i)
                 summary.add_summary(image_summary_, i)
